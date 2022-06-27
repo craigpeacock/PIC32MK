@@ -1,6 +1,8 @@
 
 /* 
  * Example code for PIC32MK0512MCJ064
+ * Using Timer 2, flashes LED1 every 1 second and prints "Hello World" every 500mS
+ * Demonstrates basic PIC32MK UART, Timer and Interrupt operations
  * 
  * 8MHz Crystal on Primary Oscillator
  * 32.768KHz Crystal on Secondary Oscillator
@@ -96,14 +98,16 @@ void main(void)
     LED1_DIR = 0;
     LED2_DIR = 0;
     
-    LCD_BL_EN_DIR = 0;  // Turn off LCD backlight
+    // Turn off LCD backlight
+    LCD_BL_EN_DIR = 0;  
     LCD_BL_EN = 0;
 
     init_OSC();    
     init_TMR2();
-    __XC_UART = 2;      // Redirect stdout to UART1
     init_UART2();
     
+    // Enable Multi-Vector Interrupts
+     INTCONSET = _INTCON_MVEC_MASK;  
     __builtin_enable_interrupts();  
     
     printf("\n\rPIC32MK Example\n\r");
@@ -135,6 +139,7 @@ void init_OSC(void)
 
 void init_TMR2(void)
 {
+    // Set up Timer 2 to flash heartbeat LED once a second
     // Timers 2 to 9 are clocked from Peripheral Bus Clock 2. 
     // PBCLK2 = 8MHz / 16 Prescaler = 500,000
     PR2 = 250000 - 16;
@@ -142,40 +147,44 @@ void init_TMR2(void)
     T2CONbits.TCKPS = 4;        // 1:16 Prescaler
     T2CONbits.TCS = 0;          // Use internal peripheral clock as source
     T2CONbits.T32 = 1;          // 32-Bit Timer
-    IPC2bits.T2IP = 7;          // Interrupt Priority
+    IPC2bits.T2IP = 1;          // Interrupt Priority (Low)
     IFS0bits.T2IF = 0;          // Clear Flag
     IEC0bits.T2IE = 1;          // Enable Interrupt
     T2CONbits.ON = 1;           // Enable Timer
 }
 
-void __ISR (_TIMER_2_VECTOR, IPL7SRS) Timer1Handler (void)
+void __ISR (_TIMER_2_VECTOR, IPL1AUTO) Timer1Handler (void)
 {
+    printf("Hello World\r\n");
     LED1 = ~LED1;
     IFS0bits.T2IF = 0;          // Clear Flag
 }
 
 void init_UART2(void)
 {
-    // UART1 is clocked from Peripheral Bus Clock 2. 
+    // Set up for transmit only (printf). 
+    // No requirement for receive.
+    // Configured for 9600bps, 8N1
+    // UART2 is clocked from Peripheral Bus Clock 2. 
     // TX = RG9/RPG9/AN16
-    // RX = RG7/RPG7/AN18
+    // RX = RG7/RPG7/AN18 (Not currently used)
+
+    __XC_UART = 2;              // Redirect stdout to UART1
     
     U2MODEbits.ON = 0;          // Disable UART
-    
-    ANSELGbits.ANSG9 = 0;
+    // Set up remappable pins:
     U2RXRbits.U2RXR = 0b1010;   // Receive on RG8 (Input)
     RPG9Rbits.RPG9R = 2;        // Transmit on RG9 (Output)
-    
+    // Set up baud rate:
     U2MODEbits.CLKSEL = 0b00;   // Clock from PBCLK2
     U2MODEbits.BRGH = 0;        // Standard Speed Mode
     U2BRG = 52;                 // UxBRG = ((CLKSEL Frequency / (16 * Desired Baud Rate)) ? 1)   
-    
-    U2STAbits.UTXEN = 1;        // Enable Transmit
-    
+    // Set up interrupts: (not enabled)
     IFS1bits.U2TXIF = 0;        // Clear the Transmit Interrupt Flag
     IEC1bits.U2TXIE = 0;        // Disable Transmit Interrupts
     IFS1bits.U2RXIF = 0;        // Clear the Receive Interrupt Flag
     IEC1bits.U2RXIE = 0;        // Disable Receive Interrupts
-    
+    // Enable only transmit: 
+    U2STAbits.UTXEN = 1;        // Enable Transmit
     U2MODEbits.ON = 1;          // Enable UART
 }
