@@ -1,7 +1,7 @@
 
 /* 
  * Example code for PIC32MK0512MCJ064
- * DMA Example.
+ * DMA Example. Copies data from BufferA to BufferB on software trigger.
  * 
  * 8MHz Crystal on Primary Oscillator
  * 32.768KHz Crystal on Secondary Oscillator
@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <sys/attribs.h>
 #include <xc.h> 
-#include <sys/kmem.h>                   // Included for Address Translation Macros 
+#include <sys/kmem.h>                   // Included for Address Translation Macros, KVA_TO_PA
 
 // DEVCFG3
 #pragma config USERID = 0xFFFF          // Enter Hexadecimal value (Enter Hexadecimal value)
@@ -141,7 +141,7 @@ void main(void)
         printf("%05d ",BufferB[i]);
         if (((i+1) % 8) == 0) printf("\r\n");
     }
-    
+           
     while (1) {
                 
     }
@@ -157,7 +157,7 @@ void init_DMA(void)
     DCH0DSA = KVA_TO_PA((void *)BufferB);  // Destination
     DCH0SSIZ = sizeof(BufferA);     // Source Size (bytes)
     DCH0DSIZ = sizeof(BufferB);     // Destination Size (bytes)
-    DCH0CSIZ = sizeof(BufferA);     // bytes transferred per event
+    DCH0CSIZ = sizeof(BufferA);     // Bytes transferred per trigger event
     
     // DMA transfer can be triggered by interrupt source. In this example
     // we trigger in the main loop using a forced trigger (CFORCE). 
