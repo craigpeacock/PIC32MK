@@ -14,7 +14,8 @@
 
 #include <stdio.h>
 #include <sys/attribs.h>
-#include <xc.h> 
+#include <xc.h>
+#include "main.h"
 
 // DEVCFG3
 #pragma config USERID = 0xFFFF          // Enter Hexadecimal value (Enter Hexadecimal value)
